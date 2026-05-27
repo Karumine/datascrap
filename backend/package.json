@@ -1,0 +1,16 @@
+{
+  "name": "datascrap-backend",
+  "version": "1.0.0",
+  "description": "Thai Company Financial Tracker — Express + SQLite + Puppeteer backend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "sql.js": "^1.11.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
+    "puppeteer": "^23.0.0"
+  }
+}

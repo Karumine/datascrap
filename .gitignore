@@ -1,0 +1,22 @@
+# Node dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Databases
+*.db
+*.db-journal
+*.db-wal
+
+# Build outputs
+dist/
+build/
+.cache/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
