@@ -6,7 +6,7 @@ export interface FinancialData {
 
 export interface SearchResult {
   companyName: string;
-  source: "cache" | "scraped";
+  source: "cache" | "scraped" | "excel";
   data: FinancialData[];
 }
 
@@ -20,7 +20,7 @@ export interface SearchHistoryEntry {
   id: number;
   company_name: string;
   searched_at: string;
-  source: "cache" | "scraped";
+  source: "cache" | "scraped" | "excel";
   result_count: number;
   revenue_latest: number;
   net_profit_latest: number;

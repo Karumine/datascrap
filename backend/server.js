@@ -4,6 +4,8 @@ const initSqlJs = require("sql.js");
 const fs = require("fs");
 const path = require("path");
 const { scrapeCompany } = require("./scraper");
+const multer = require("multer");
+const xlsx = require("xlsx");
 
 // ─── Database Setup ────────────────────────────────────────────────
 const DB_PATH = path.join(__dirname, "finance.db");
@@ -59,6 +61,135 @@ app.use(cors());
 app.use(express.json());
 
 const PORT = 8080;
+const upload = multer({ storage: multer.memoryStorage() });
+
+// ─── GET /api/template ──────────────────────────────────────────────
+app.get("/api/template", (req, res) => {
+  const wsData = [
+    ["ชื่อบริษัท", "รายการ", "2564", "2565", "2566"],
+    ["บริษัท เอ จำกัด", "รายได้รวม", 1000000, 1200000, 1500000],
+    ["บริษัท เอ จำกัด", "กำไรสุทธิ", 200000, 300000, 450000],
+    ["บริษัท บี จำกัด", "รายได้รวม", 2000000, 2200000, 2500000],
+    ["บริษัท บี จำกัด", "กำไรสุทธิ", 500000, 600000, 850000]
+  ];
+  
+  const ws = xlsx.utils.aoa_to_sheet(wsData);
+  const wb = xlsx.utils.book_new();
+  xlsx.utils.book_append_sheet(wb, ws, "Template");
+  
+  const buffer = xlsx.write(wb, { type: "buffer", bookType: "xlsx" });
+  
+  res.setHeader('Content-Disposition', 'attachment; filename="template.xlsx"');
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.send(buffer);
+});
+
+// ─── POST /api/upload-excel ─────────────────────────────────────────
+app.post("/api/upload-excel", upload.single("file"), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: "ไม่พบไฟล์ที่อัปโหลด" });
+  }
+
+  try {
+    const wb = xlsx.read(req.file.buffer, { type: "buffer" });
+    const wsName = wb.SheetNames[0];
+    const ws = wb.Sheets[wsName];
+    
+    // Parse as JSON array of arrays
+    const data = xlsx.utils.sheet_to_json(ws, { header: 1 });
+    
+    if (data.length < 2) {
+      return res.status(400).json({ error: "ไม่พบข้อมูลในไฟล์ Excel หรือรูปแบบไม่ถูกต้อง" });
+    }
+
+    const headerRow = data[0];
+    const rows = data.slice(1).filter(row => row.length > 0 && row[0]);
+    
+    if (rows.length === 0) {
+      return res.status(400).json({ error: "ไม่พบข้อมูลในไฟล์ Excel หรือรูปแบบไม่ถูกต้อง" });
+    }
+    
+    // Find year columns from header
+    const yearCols = [];
+    for (let i = 2; i < headerRow.length; i++) {
+      const colName = String(headerRow[i] || "").trim();
+      const match = colName.match(/(\d{4})/);
+      if (match) {
+        yearCols.push({ index: i, year: parseInt(match[1]) });
+      }
+    }
+
+    if (yearCols.length === 0) {
+      return res.status(400).json({ error: "ไม่พบคอลัมน์ที่เป็นปี (เช่น 2564, 2565) ในแถวแรกสุดของไฟล์" });
+    }
+
+    // Group by company name
+    const companiesRaw = {};
+    for (const row of rows) {
+      const cName = String(row[0] || "").trim();
+      const metric = String(row[1] || "").trim();
+      
+      if (!cName) continue;
+      if (!companiesRaw[cName]) {
+        companiesRaw[cName] = {};
+        for (const yc of yearCols) {
+          companiesRaw[cName][yc.year] = { year: yc.year, revenue: 0, netProfit: 0 };
+        }
+      }
+
+      const isRevenue = metric === "รายได้รวม" || metric.includes("รายได้");
+      const isNetProfit = metric === "กำไรสุทธิ" || metric.includes("กำไร");
+
+      for (const yc of yearCols) {
+        // Remove commas and spaces before parsing
+        const cleanedStr = String(row[yc.index] || "0").replace(/,/g, "").trim();
+        const val = parseFloat(cleanedStr) || 0;
+        
+        if (isRevenue) {
+          companiesRaw[cName][yc.year].revenue = val;
+        } else if (isNetProfit) {
+          companiesRaw[cName][yc.year].netProfit = val;
+        }
+      }
+    }
+
+    const results = [];
+
+    // Process and save to SQLite
+    for (const [companyName, yearsData] of Object.entries(companiesRaw)) {
+      const financialData = Object.values(yearsData).sort((a, b) => a.year - b.year);
+      
+      for (const row of financialData) {
+        db.run(
+          `INSERT OR REPLACE INTO financials (company_name, year, revenue, net_profit) VALUES (?, ?, ?, ?)`,
+          [companyName, row.year, row.revenue, row.netProfit]
+        );
+      }
+      
+      const latest = financialData[financialData.length - 1] || { revenue: 0, netProfit: 0 };
+      db.run(
+        `INSERT INTO search_history (company_name, source, result_count, revenue_latest, net_profit_latest) VALUES (?, ?, ?, ?, ?)`,
+        [companyName, "excel", financialData.length, latest.revenue, latest.netProfit]
+      );
+      
+      results.push({
+        companyName,
+        source: "excel",
+        data: financialData,
+      });
+    }
+    
+    saveDB();
+
+    res.json({
+      results
+    });
+
+  } catch (err) {
+    console.error("[excel upload error]", err);
+    res.status(500).json({ error: "เกิดข้อผิดพลาดในการอ่านไฟล์ Excel" });
+  }
+});
 
 // ─── GET /api/search?name=<company> ────────────────────────────────
 app.get("/api/search", async (req, res) => {

@@ -83,6 +83,21 @@ function CustomTooltip({
   );
 }
 
+const CustomLegend = () => {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', gap: '24px', fontFamily: 'var(--font-thai)', fontSize: '0.85rem', paddingTop: '16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ width: 14, height: 14, background: '#fbbf24', borderRadius: '3px' }}></div>
+        <span className="recharts-text">รายได้รวม</span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ width: 14, height: 14, background: '#22d3ee', borderRadius: '3px' }}></div>
+        <span className="recharts-text">กำไรสุทธิ</span>
+      </div>
+    </div>
+  );
+};
+
 export default function FinancialChart({ data, companyName }: FinancialChartProps) {
   const [chartType, setChartType] = useState<ChartType>("bar");
 
@@ -113,67 +128,69 @@ export default function FinancialChart({ data, companyName }: FinancialChartProp
         </div>
       </div>
 
-      <ResponsiveContainer width="100%" height={350}>
-        {chartType === "bar" ? (
-          <BarChart
-            data={data}
-            margin={{ top: 10, right: 20, left: 20, bottom: 5 }}
-            barCategoryGap="25%"
-            barGap={8}
-          >
-            <defs>
-              <linearGradient id="goldGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#fbbf24" stopOpacity={1} />
-                <stop offset="100%" stopColor="#f59e0b" stopOpacity={0.7} />
-              </linearGradient>
-              <linearGradient id="cyanGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#22d3ee" stopOpacity={1} />
-                <stop offset="100%" stopColor="#06b6d4" stopOpacity={0.7} />
-              </linearGradient>
-            </defs>
+      <div className="chart-wrapper">
+        <ResponsiveContainer width="100%" height="100%">
+          {chartType === "bar" ? (
+            <BarChart
+              data={data}
+              margin={{ top: 10, right: 20, left: 20, bottom: 5 }}
+              barCategoryGap="25%"
+              barGap={8}
+            >
+              <defs>
+                <linearGradient id="goldGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#fbbf24" stopOpacity={1} />
+                  <stop offset="100%" stopColor="#f59e0b" stopOpacity={0.7} />
+                </linearGradient>
+                <linearGradient id="cyanGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#22d3ee" stopOpacity={1} />
+                  <stop offset="100%" stopColor="#06b6d4" stopOpacity={0.7} />
+                </linearGradient>
+              </defs>
 
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
-            <XAxis dataKey="year" tick={{ fontSize: 13, fontWeight: 600 }} tickLine={false} axisLine={{ stroke: "rgba(255,255,255,0.08)" }} />
-            <YAxis tickFormatter={formatThaiCurrency} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} width={80} />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(139, 92, 246, 0.04)" }} />
-            <Legend wrapperStyle={{ fontFamily: "var(--font-thai)", fontSize: "0.8rem", paddingTop: "12px" }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+              <XAxis dataKey="year" tick={{ fontSize: 13, fontWeight: 600 }} tickLine={false} axisLine={{ stroke: "rgba(255,255,255,0.08)" }} />
+              <YAxis tickFormatter={formatThaiCurrency} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} width={80} />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(139, 92, 246, 0.04)" }} />
+              <Legend content={<CustomLegend />} />
 
-            <Bar dataKey="revenue" name="รายได้รวม" fill="url(#goldGradient)" radius={[8, 8, 0, 0]} animationDuration={800} animationEasing="ease-out">
-              {data.map((_entry, index) => (
-                <Cell key={`rev-${index}`} fill="url(#goldGradient)" />
-              ))}
-            </Bar>
+              <Bar dataKey="revenue" name="รายได้รวม" fill="url(#goldGradient)" radius={[8, 8, 0, 0]} isAnimationActive={false}>
+                {data.map((_entry, index) => (
+                  <Cell key={`rev-${index}`} fill="url(#goldGradient)" />
+                ))}
+              </Bar>
 
-            <Bar dataKey="netProfit" name="กำไรสุทธิ" fill="url(#cyanGradient)" radius={[8, 8, 0, 0]} animationDuration={800} animationEasing="ease-out" animationBegin={200}>
-              {data.map((_entry, index) => (
-                <Cell key={`np-${index}`} fill="url(#cyanGradient)" />
-              ))}
-            </Bar>
-          </BarChart>
-        ) : (
-          <AreaChart data={data} margin={{ top: 10, right: 20, left: 20, bottom: 5 }}>
-            <defs>
-              <linearGradient id="goldAreaGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#fbbf24" stopOpacity={0.3} />
-                <stop offset="100%" stopColor="#fbbf24" stopOpacity={0} />
-              </linearGradient>
-              <linearGradient id="cyanAreaGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.3} />
-                <stop offset="100%" stopColor="#22d3ee" stopOpacity={0} />
-              </linearGradient>
-            </defs>
+              <Bar dataKey="netProfit" name="กำไรสุทธิ" fill="url(#cyanGradient)" radius={[8, 8, 0, 0]} isAnimationActive={false}>
+                {data.map((_entry, index) => (
+                  <Cell key={`np-${index}`} fill="url(#cyanGradient)" />
+                ))}
+              </Bar>
+            </BarChart>
+          ) : (
+            <AreaChart data={data} margin={{ top: 10, right: 20, left: 20, bottom: 5 }}>
+              <defs>
+                <linearGradient id="goldAreaGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#fbbf24" stopOpacity={0.3} />
+                  <stop offset="100%" stopColor="#fbbf24" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="cyanAreaGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#22d3ee" stopOpacity={0.3} />
+                  <stop offset="100%" stopColor="#22d3ee" stopOpacity={0} />
+                </linearGradient>
+              </defs>
 
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
-            <XAxis dataKey="year" tick={{ fontSize: 13, fontWeight: 600 }} tickLine={false} axisLine={{ stroke: "rgba(255,255,255,0.08)" }} />
-            <YAxis tickFormatter={formatThaiCurrency} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} width={80} />
-            <Tooltip content={<CustomTooltip />} />
-            <Legend wrapperStyle={{ fontFamily: "var(--font-thai)", fontSize: "0.8rem", paddingTop: "12px" }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+              <XAxis dataKey="year" tick={{ fontSize: 13, fontWeight: 600 }} tickLine={false} axisLine={{ stroke: "rgba(255,255,255,0.08)" }} />
+              <YAxis tickFormatter={formatThaiCurrency} tick={{ fontSize: 11 }} tickLine={false} axisLine={false} width={80} />
+              <Tooltip content={<CustomTooltip />} />
+              <Legend content={<CustomLegend />} />
 
-            <Area type="monotone" dataKey="revenue" name="รายได้รวม" stroke="#fbbf24" strokeWidth={2.5} fill="url(#goldAreaGradient)" animationDuration={800} dot={{ r: 5, fill: "#fbbf24", strokeWidth: 2, stroke: "#0a0e1a" }} />
-            <Area type="monotone" dataKey="netProfit" name="กำไรสุทธิ" stroke="#22d3ee" strokeWidth={2.5} fill="url(#cyanAreaGradient)" animationDuration={800} animationBegin={200} dot={{ r: 5, fill: "#22d3ee", strokeWidth: 2, stroke: "#0a0e1a" }} />
-          </AreaChart>
-        )}
-      </ResponsiveContainer>
+              <Area type="monotone" dataKey="revenue" name="รายได้รวม" stroke="#fbbf24" strokeWidth={2.5} fill="url(#goldAreaGradient)" isAnimationActive={false} dot={{ r: 5, fill: "#fbbf24", strokeWidth: 2, stroke: "#0a0e1a" }} />
+              <Area type="monotone" dataKey="netProfit" name="กำไรสุทธิ" stroke="#22d3ee" strokeWidth={2.5} fill="url(#cyanAreaGradient)" isAnimationActive={false} dot={{ r: 5, fill: "#22d3ee", strokeWidth: 2, stroke: "#0a0e1a" }} />
+            </AreaChart>
+          )}
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }

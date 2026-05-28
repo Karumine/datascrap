@@ -1,117 +1,94 @@
-import { useState, type FormEvent } from "react";
+import { useState, type ChangeEvent } from "react";
 
-interface SearchBarProps {
-  onSearch: (name: string) => void;
+interface ExcelUploaderProps {
+  onUpload: (file: File) => void;
   isLoading: boolean;
 }
 
-export default function SearchBar({ onSearch, isLoading }: SearchBarProps) {
-  const [query, setQuery] = useState("");
+export default function ExcelUploader({ onUpload, isLoading }: ExcelUploaderProps) {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    const trimmed = query.trim();
-    if (trimmed && !isLoading) {
-      onSearch(trimmed);
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
+
+  const handleUploadClick = () => {
+    if (selectedFile && !isLoading) {
+      onUpload(selectedFile);
     }
   };
 
   return (
     <div className="hero-search">
-      <h1 className="hero-search-title">ค้นหาข้อมูลการเงินบริษัท</h1>
+      <h1 className="hero-search-title">อัปโหลดข้อมูลงบการเงิน</h1>
       <p className="hero-search-subtitle">
-        ดึงข้อมูลรายได้รวม & กำไรสุทธิย้อนหลัง 3 ปี จาก DBD DataWarehouse โดยอัตโนมัติ
+        ดาวน์โหลดเทมเพลต กรอกข้อมูล และอัปโหลดไฟล์ Excel ของคุณเพื่อสร้างกราฟ
       </p>
 
-      <form onSubmit={handleSubmit}>
-        <div className="search-input-wrapper">
-          <div className="relative flex-1" style={{ position: "relative" }}>
-            {/* Search icon */}
-            <svg
-              style={{
-                position: "absolute",
-                left: "16px",
-                top: "50%",
-                transform: "translateY(-50%)",
-                width: "18px",
-                height: "18px",
-                color: "var(--color-text-muted)",
-              }}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+      <div style={{ display: "flex", justifyContent: "center", gap: "10px", marginBottom: "20px" }}>
+        <a 
+          href="http://localhost:8080/api/template" 
+          download 
+          className="btn-secondary"
+          style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+        >
+          <svg style={{ width: "18px", height: "18px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          ดาวน์โหลดเทมเพลต Excel
+        </a>
+      </div>
+
+      <div className="search-input-wrapper" style={{ flexDirection: "column", gap: "15px", alignItems: "stretch", background: "rgba(255, 255, 255, 0.03)", padding: "20px", borderRadius: "12px", border: "1px dashed rgba(255,255,255,0.2)" }}>
+        <input
+          type="file"
+          accept=".xlsx, .xls"
+          onChange={handleFileChange}
+          disabled={isLoading}
+          style={{ color: "var(--color-text)", background: "transparent", border: "none", width: "100%" }}
+        />
+
+        <button
+          onClick={handleUploadClick}
+          disabled={isLoading || !selectedFile}
+          className="btn-primary"
+          style={{ width: "100%", justifyContent: "center" }}
+        >
+          {isLoading ? (
+            <>
+              <span
+                className="spinner"
+                style={{
+                  width: "18px",
+                  height: "18px",
+                  borderWidth: "2px",
+                  borderColor: "rgba(255,255,255,0.3)",
+                  borderTopColor: "#fff",
+                }}
               />
-            </svg>
-
-            <input
-              id="company-search-input"
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="พิมพ์ชื่อบริษัท หรือ เลขทะเบียนนิติบุคคล 13 หลัก"
-              className="glow-input"
-              disabled={isLoading}
-              autoFocus
-            />
+              <span>กำลังอัปโหลด...</span>
+            </>
+          ) : (
+            <>
+              <svg style={{ width: "18px", height: "18px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              </svg>
+              <span>อัปโหลดไฟล์ Excel</span>
+            </>
+          )}
+        </button>
+      </div>
+      
+      {isLoading && (
+        <div className="loading-overlay" style={{ padding: "24px 0", position: "relative", background: "transparent" }}>
+          <div className="pulse-dot" />
+          <div style={{ textAlign: "center" }}>
+            <p className="loading-text">กำลังประมวลผลไฟล์...</p>
           </div>
-
-          <button
-            id="search-button"
-            type="submit"
-            disabled={isLoading || !query.trim()}
-            className="btn-primary"
-          >
-            {isLoading ? (
-              <>
-                <span
-                  className="spinner"
-                  style={{
-                    width: "18px",
-                    height: "18px",
-                    borderWidth: "2px",
-                    borderColor: "rgba(255,255,255,0.3)",
-                    borderTopColor: "#fff",
-                  }}
-                />
-                <span>กำลังค้นหา...</span>
-              </>
-            ) : (
-              <>
-                <svg style={{ width: "18px", height: "18px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-                <span>ค้นหา</span>
-              </>
-            )}
-          </button>
         </div>
-
-        {/* Loading status bar */}
-        {isLoading && (
-          <div className="loading-overlay" style={{ padding: "24px 0" }}>
-            <div className="pulse-dot" />
-            <div style={{ textAlign: "center" }}>
-              <p className="loading-text">
-                กำลังดึงข้อมูลจาก DBD DataWarehouse...
-              </p>
-              <p className="loading-subtext">
-                ระบบกำลังใช้ Puppeteer สกัดข้อมูล อาจใช้เวลา 15-30 วินาที
-              </p>
-            </div>
-          </div>
-        )}
-      </form>
+      )}
     </div>
   );
 }

@@ -752,6 +752,10 @@ body {
   outline: none !important;
 }
 
+.chart-wrapper {
+  height: 350px;
+}
+
 /* ─── Source Badge ─────────────────────────────────────────────── */
 .badge {
   padding: 4px 12px;
@@ -991,4 +995,102 @@ body {
 .chart-toggle-btn.active {
   background: var(--color-accent-dim);
   color: var(--color-accent-light);
+}
+
+/* ─── Print Styles ─────────────────────────────────────────────── */
+@media print {
+  @page {
+    size: A4;
+    margin: 0mm; /* Remove browser headers/footers */
+  }
+  body {
+    background: white !important;
+    color: black !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .bg-gradient-animated {
+    background: none !important;
+    animation: none !important;
+  }
+  .particles-container, .sidebar, #search-section, footer, .hide-on-print, .chart-toggle, .stat-card-icon, .badge {
+    display: none !important;
+  }
+  .dashboard-layout {
+    display: block !important;
+  }
+  .main-content {
+    min-width: 960px !important;
+    padding: 1.5cm 1.5cm !important; /* Act as paper margin */
+    margin: 0 auto !important;
+  }
+  
+  /* Compact layout */
+  .result-header {
+    margin-bottom: 12px !important;
+    padding-bottom: 8px !important;
+  }
+  .result-header h2 {
+    font-size: 1.2rem !important;
+  }
+  .stat-cards-grid {
+    display: flex !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+    margin-bottom: 16px !important;
+  }
+  .stat-card {
+    padding: 10px 12px !important;
+    flex: 1;
+    border: 1px solid #ccc !important;
+    border-radius: 6px !important;
+    background: white !important;
+    box-shadow: none !important;
+  }
+  .stat-card-label {
+    font-size: 8pt !important;
+    margin-bottom: 4px !important;
+  }
+  .stat-card-value {
+    font-size: 12pt !important;
+  }
+  .stat-card-sub {
+    font-size: 7pt !important;
+  }
+
+  .glass-card {
+    padding: 16px !important;
+    margin-bottom: 16px !important;
+    border: 1px solid #ccc !important;
+    border-radius: 6px !important;
+    background: white !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+  }
+  
+  .section-header {
+    margin-bottom: 8px !important;
+  }
+  
+  .data-table th, .data-table td {
+    padding: 8px 12px !important;
+    font-size: 9pt !important;
+  }
+  .data-table thead th {
+    background: #f5f5f5 !important;
+    color: black !important;
+    border-bottom: 1px solid #ccc !important;
+  }
+  .data-table tbody td {
+    border-bottom: 1px solid #eee !important;
+  }
+
+  /* Reset colors for visibility */
+  * {
+    color: black !important;
+    text-shadow: none !important;
+  }
+  .recharts-text {
+    fill: black !important;
+  }
 }
