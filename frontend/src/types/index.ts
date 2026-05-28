@@ -15,3 +15,13 @@ export interface CachedCompany {
   years: number;
   last_scraped: string;
 }
+
+export interface SearchHistoryEntry {
+  id: number;
+  company_name: string;
+  searched_at: string;
+  source: "cache" | "scraped";
+  result_count: number;
+  revenue_latest: number;
+  net_profit_latest: number;
+}

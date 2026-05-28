@@ -25,77 +25,68 @@ async function scrapeCompany(companyName) {
   );
 
   try {
-    // ─── 1. Navigate directly to search results page ────────────────
-    const searchUrl = `https://datawarehouse.dbd.go.th/juristic/searchInfo?keyword=${encodeURIComponent(companyName)}`;
-    console.log(`[scraper] Navigating directly to search URL: ${searchUrl}`);
-    await page.goto(searchUrl, {
-      waitUntil: "domcontentloaded",
+    // ─── 1. Determine Target URL ────────────────────────────────────
+    let targetUrl;
+    
+    // Check if the input is a 13-digit Juristic ID
+    const isJuristicId = /^\d{13}$/.test(companyName);
+    
+    if (isJuristicId) {
+      // New DBD Datawarehouse+ format: 5th digit + Juristic ID
+      const fifthDigit = companyName.charAt(4);
+      targetUrl = `https://datawarehouse.dbd.go.th/company/profile/${fifthDigit}${companyName}`;
+      console.log(`[scraper] Navigating directly to profile URL: ${targetUrl}`);
+    } else {
+      throw new Error(`กรุณาใช้เลขทะเบียนนิติบุคคล 13 หลักในการค้นหา (การค้นหาด้วยชื่อกำลังปรับปรุง)`);
+    }
+
+    await page.goto(targetUrl, {
+      waitUntil: "networkidle2",
       timeout: 60000,
     }).catch(e => console.log(`[scraper] Navigation warning: ${e.message}`));
 
     // Settle delay
-    await delay(4000);
+    await delay(3000);
 
     // ─── 2. Handle modals & cookies overlays ────────────────────────
-    console.log("[scraper] Closing warning modal if present...");
-    await page.click("#btnWarning").catch(() => {});
-    await delay(500);
-
     console.log("[scraper] Accepting cookies if present...");
     await page.evaluate(() => {
-      const btns = Array.from(document.querySelectorAll(".cc-btn"));
-      const accept = btns.find(b => b.textContent.includes("ยอมรับทั้งหมด"));
+      const btns = Array.from(document.querySelectorAll("button"));
+      const accept = btns.find(b => b.textContent.includes("ยอมรับ"));
       if (accept) accept.click();
     }).catch(() => {});
-    await delay(2000); // Wait for animations to complete
+    await delay(1000);
 
-    // ─── 3. Click the first company row in search results ────────────
-    console.log("[scraper] Waiting for search result table row...");
-    const rowSelector = "table tr.cursor-pointer";
-    try {
-      await page.waitForSelector(rowSelector, { timeout: 20000 });
-    } catch (e) {
-      throw new Error(`ไม่พบรายชื่อบริษัทสำหรับ "${companyName}" บน DBD DataWarehouse`);
+    // ─── 3. Check if company profile loaded ─────────────────────────
+    const pageText = await page.evaluate(() => document.body.innerText);
+    if (pageText.includes("Page not found") || pageText.includes("404")) {
+      throw new Error(`ไม่พบข้อมูลสำหรับเลขทะเบียน "${companyName}" บน DBD DataWarehouse+`);
     }
 
-    console.log("[scraper] Clicking the first company result row...");
-    await Promise.all([
-      page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 25000 }).catch(() => {}),
-      page.click(rowSelector)
-    ]);
-    await delay(4000);
-
     // ─── 4. Navigate to Financial Statements Tab ────────────────────
-    console.log("[scraper] Waiting for profile page navigation tab (#menu2)...");
-    await page.waitForSelector("#menu2", { timeout: 20000 });
-
-    console.log("[scraper] Opening 'ข้อมูลงบการเงิน' dropdown...");
-    await page.click("#menu2");
-    await delay(1500);
-
-    console.log("[scraper] Selecting 'งบการเงิน' subtab...");
-    const selectedSubtab = await page.evaluate(() => {
-      const anchors = Array.from(document.querySelectorAll("ul.dropdown-menu a, .dropdown-menu a"));
-      const target = anchors.find(a => a.textContent.trim() === "งบการเงิน");
-      if (target) {
-        target.click();
+    console.log("[scraper] Clicking 'ข้อมูลงบการเงิน' tab...");
+    const clickedFinData = await page.evaluate(() => {
+      const tabs = Array.from(document.querySelectorAll("a, button, li, span, div"));
+      const tab = tabs.find(t => t.textContent.trim() === "ข้อมูลงบการเงิน" && t.offsetHeight > 0);
+      if (tab) {
+        tab.click();
         return true;
       }
       return false;
     });
 
-    if (!selectedSubtab) {
-      throw new Error("ไม่พบเมนูงบการเงิน บนหน้ารายละเอียดบริษัท");
+    if (!clickedFinData) {
+      throw new Error("ไม่พบเมนู 'ข้อมูลงบการเงิน' บนหน้ารายละเอียดบริษัท");
     }
-    await delay(4000);
+    await delay(2500);
 
     // ─── 5. Switch to Income Statement (งบกำไรขาดทุน) view ──────────
     console.log("[scraper] Clicking 'งบกำไรขาดทุน'...");
     const switchedToIncome = await page.evaluate(() => {
-      const items = Array.from(document.querySelectorAll("div, a, button, li, span"));
-      const target = items.find(x => x.textContent.trim() === "งบกำไรขาดทุน" && x.offsetWidth > 0);
-      if (target) {
-        target.click();
+      const btns = Array.from(document.querySelectorAll("a, button, label, span"));
+      const btn = btns.find(b => b.textContent.trim() === "งบกำไรขาดทุน" && b.offsetHeight > 0);
+      if (btn) {
+        btn.click();
         return true;
       }
       return false;
@@ -104,7 +95,7 @@ async function scrapeCompany(companyName) {
     if (!switchedToIncome) {
       throw new Error("ไม่สามารถเปิดหน้าสัดส่วนงบกำไรขาดทุนได้");
     }
-    await delay(5000); // Wait for the table data to load via AJAX
+    await delay(3000); // Wait for the table data to load
 
     // ─── 6. Extract financial data from Income Statement table ──────
     console.log("[scraper] Extracting financial data...");
@@ -118,7 +109,7 @@ async function scrapeCompany(companyName) {
 
       // Parse years from header row (Index 0)
       const headerRow = rows[0];
-      const headerCells = Array.from(headerRow.querySelectorAll("th, td")).map(c => c.textContent.trim());
+      const headerCells = Array.from(headerRow.querySelectorAll("th:not([rowspan]), td")).map(c => c.textContent.trim());
 
       // Find indices of years (e.g. 2566, 2567)
       const yearCols = [];
@@ -169,12 +160,11 @@ async function scrapeCompany(companyName) {
       }
 
       // Extract values matching year indices
-      // Year index j maps to columns:
-      // Value: cellIndex = 2 * j - 1
+      // In the new table, year index j maps to column: 2 * j - 1 for "จำนวนเงิน" (Value)
       yearCols.forEach((yearCol) => {
         const valColIdx = 2 * yearCol.colIndex - 1;
-        const revenue = revenueRowCells ? parseThaiNum(revenueRowCells[valColIdx]) : 0;
-        const netProfit = netProfitRowCells ? parseThaiNum(netProfitRowCells[valColIdx]) : 0;
+        const revenue = revenueRowCells && valColIdx < revenueRowCells.length ? parseThaiNum(revenueRowCells[valColIdx]) : 0;
+        const netProfit = netProfitRowCells && valColIdx < netProfitRowCells.length ? parseThaiNum(netProfitRowCells[valColIdx]) : 0;
 
         results.push({
           year: yearCol.year,
