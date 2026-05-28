@@ -13,7 +13,18 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<SearchHistoryEntry[]>([]);
   const [resultKey, setResultKey] = useState(0);
+  const [isPrintingAll, setIsPrintingAll] = useState(false);
   const lastSearchRef = useRef<string>("");
+
+  useEffect(() => {
+    if (isPrintingAll) {
+      const timer = setTimeout(() => {
+        window.print();
+        setIsPrintingAll(false);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isPrintingAll]);
 
   // Fetch search history
   const fetchHistory = useCallback(async () => {
@@ -178,82 +189,130 @@ export default function App() {
           {/* Results */}
           {result && result.data.length > 0 && (
             <div key={resultKey} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-              {/* Company header */}
-              <div className="result-header" style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
-                <h2 style={{ margin: 0 }}>{result.companyName}</h2>
-                <span className={`badge ${result.source === "cache" ? "badge-cache" : result.source === "excel" ? "badge-scraped" : "badge-scraped"}`}>
-                  {result.source === "cache" ? "💾 จากแคช" : result.source === "excel" ? "📊 จากไฟล์ Excel" : "🌐 ดึงข้อมูลใหม่"}
-                </span>
+              {!isPrintingAll ? (
+                <div className="main-content fade-in">
+                  {/* Company header */}
+                  <div className="result-header" style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
+                    <h2 style={{ margin: 0 }}>{result.companyName}</h2>
+                    <span className={`badge ${result.source === "cache" ? "badge-cache" : result.source === "excel" ? "badge-scraped" : "badge-scraped"}`}>
+                      {result.source === "cache" ? "💾 จากแคช" : result.source === "excel" ? "📊 จากไฟล์ Excel" : "🌐 ดึงข้อมูลใหม่"}
+                    </span>
 
-                {uploadedResults && uploadedResults.length > 1 && (
-                  <div className="hide-on-print" style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "10px" }}>
-                    <label style={{ fontSize: "0.9rem", color: "var(--color-text-dim)" }}>เลือกบริษัท:</label>
-                    <select 
-                      value={result.companyName} 
-                      onChange={(e) => {
-                        const selected = uploadedResults.find(r => r.companyName === e.target.value);
-                        if (selected) {
-                          setResultKey(k => k + 1);
-                          lastSearchRef.current = selected.companyName;
-                          setResult(selected);
-                        }
-                      }}
+                    {uploadedResults && uploadedResults.length > 1 && (
+                      <div className="hide-on-print" style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "10px" }}>
+                        <label style={{ fontSize: "0.9rem", color: "var(--color-text-dim)" }}>เลือกบริษัท:</label>
+                        <select 
+                          value={result.companyName} 
+                          onChange={(e) => {
+                            const selected = uploadedResults.find(r => r.companyName === e.target.value);
+                            if (selected) {
+                              setResultKey(k => k + 1);
+                              lastSearchRef.current = selected.companyName;
+                              setResult(selected);
+                            }
+                          }}
+                          style={{ 
+                            padding: "6px 12px", 
+                            borderRadius: "8px", 
+                            background: "rgba(255,255,255,0.1)", 
+                            color: "white", 
+                            border: "1px solid rgba(255,255,255,0.2)",
+                            outline: "none",
+                            cursor: "pointer"
+                          }}
+                        >
+                          {uploadedResults.map(r => (
+                            <option key={r.companyName} value={r.companyName} style={{ color: "black" }}>
+                              {r.companyName}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    <button 
+                      onClick={() => window.print()} 
+                      className="btn-print hide-on-print"
                       style={{ 
-                        padding: "6px 12px", 
-                        borderRadius: "8px", 
-                        background: "rgba(255,255,255,0.1)", 
-                        color: "white", 
-                        border: "1px solid rgba(255,255,255,0.2)",
-                        outline: "none",
-                        cursor: "pointer"
+                        marginLeft: uploadedResults && uploadedResults.length > 1 ? "10px" : "auto", 
+                        display: "flex", 
+                        alignItems: "center", 
+                        gap: "6px",
+                        padding: "6px 12px",
+                        borderRadius: "8px",
+                        background: "rgba(139, 92, 246, 0.2)",
+                        color: "var(--color-accent-light)",
+                        border: "1px solid rgba(139, 92, 246, 0.4)",
+                        cursor: "pointer",
+                        fontSize: "0.85rem",
+                        fontWeight: 600,
+                        transition: "all 0.2s"
                       }}
+                      title="บันทึกหน้าปัจจุบันเป็น PDF"
+                      onMouseOver={(e) => e.currentTarget.style.background = "rgba(139, 92, 246, 0.3)"}
+                      onMouseOut={(e) => e.currentTarget.style.background = "rgba(139, 92, 246, 0.2)"}
                     >
-                      {uploadedResults.map(r => (
-                        <option key={r.companyName} value={r.companyName} style={{ color: "black" }}>
-                          {r.companyName}
-                        </option>
-                      ))}
-                    </select>
+                      <svg style={{ width: "16px", height: "16px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                      </svg>
+                      Export PDF
+                    </button>
+
+                    {uploadedResults && uploadedResults.length > 1 && (
+                      <button 
+                        onClick={() => setIsPrintingAll(true)} 
+                        className="btn-print-all hide-on-print"
+                        style={{ 
+                          marginLeft: "10px", 
+                          display: "flex", 
+                          alignItems: "center", 
+                          gap: "6px",
+                          padding: "6px 12px",
+                          borderRadius: "8px",
+                          background: "rgba(34, 211, 238, 0.2)",
+                          color: "#22d3ee",
+                          border: "1px solid rgba(34, 211, 238, 0.4)",
+                          cursor: "pointer",
+                          fontSize: "0.85rem",
+                          fontWeight: 600,
+                          transition: "all 0.2s"
+                        }}
+                        title="บันทึกทุกบริษัทเป็น PDF (1 บริษัทต่อ 1 หน้า)"
+                        onMouseOver={(e) => e.currentTarget.style.background = "rgba(34, 211, 238, 0.3)"}
+                        onMouseOut={(e) => e.currentTarget.style.background = "rgba(34, 211, 238, 0.2)"}
+                      >
+                        <svg style={{ width: "16px", height: "16px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                        </svg>
+                        Export All PDF
+                      </button>
+                    )}
                   </div>
-                )}
+                  
+                  {/* Stat Cards */}
+                  <StatCards data={result.data} source={result.source} />
 
-                <button 
-                  onClick={() => window.print()} 
-                  className="btn-print hide-on-print"
-                  style={{ 
-                    marginLeft: uploadedResults && uploadedResults.length > 1 ? "10px" : "auto", 
-                    display: "flex", 
-                    alignItems: "center", 
-                    gap: "6px",
-                    padding: "6px 12px",
-                    borderRadius: "8px",
-                    background: "rgba(139, 92, 246, 0.2)",
-                    color: "var(--color-accent-light)",
-                    border: "1px solid rgba(139, 92, 246, 0.4)",
-                    cursor: "pointer",
-                    fontSize: "0.85rem",
-                    fontWeight: 600,
-                    transition: "all 0.2s"
-                  }}
-                  title="บันทึกเป็น PDF"
-                  onMouseOver={(e) => e.currentTarget.style.background = "rgba(139, 92, 246, 0.3)"}
-                  onMouseOut={(e) => e.currentTarget.style.background = "rgba(139, 92, 246, 0.2)"}
-                >
-                  <svg style={{ width: "16px", height: "16px" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                  </svg>
-                  Export PDF
-                </button>
-              </div>
+                  {/* Chart */}
+                  <FinancialChart data={result.data} companyName={result.companyName} />
 
-              {/* Stat Cards */}
-              <StatCards data={result.data} source={result.source} />
-
-              {/* Chart */}
-              <FinancialChart data={result.data} companyName={result.companyName} />
-
-              {/* Table */}
-              <FinancialTable data={result.data} />
+                  {/* Table */}
+                  <FinancialTable data={result.data} />
+                </div>
+              ) : (
+                <div className="print-all-container">
+                  {uploadedResults?.map((res) => (
+                    <div key={res.companyName} className="main-content print-page-break" style={{ marginBottom: "40px" }}>
+                      <div className="section-header" style={{ marginBottom: "20px" }}>
+                        <div className="section-header-icon section-header-icon--accent">🏢</div>
+                        <h2>{res.companyName}</h2>
+                      </div>
+                      <StatCards data={res.data} source={res.source} />
+                      <FinancialChart data={res.data} companyName={res.companyName} />
+                      <FinancialTable data={res.data} />
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
