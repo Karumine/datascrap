@@ -2,7 +2,7 @@ import type { FinancialData } from "../types";
 
 interface StatCardsProps {
   data: FinancialData[];
-  source: "cache" | "scraped";
+  source: "cache" | "scraped" | "excel";
 }
 
 function formatBahtCompact(value: number): string {
@@ -82,7 +82,7 @@ export default function StatCards({ data, source }: StatCardsProps) {
         <div className="stat-card-label">ข้อมูลย้อนหลัง</div>
         <div className="stat-card-value">{data.length} ปี</div>
         <div className="stat-card-sub">
-          {source === "cache" ? "💾 จากแคช" : "🌐 ดึงข้อมูลใหม่"}
+          {source === "excel" ? "📊 จากไฟล์ Excel" : source === "cache" ? "💾 จากแคช" : "🌐 ดึงข้อมูลใหม่"}
         </div>
       </div>
     </div>
